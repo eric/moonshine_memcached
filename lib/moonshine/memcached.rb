@@ -12,22 +12,19 @@ module Moonshine
     def memcached(options = {})
       options = { :enable_on_boot => true }.merge(options)
 
-      exec 'apt-get install -q -y --force-yes memcached',
-        :before => service('memcached'),
-        :alias => 'memcached package',
-        :unless => 'dpkg -l | grep memcached'
+      package 'memcached', :ensure => :installed
 
-      service 'memcached', :ensure => :running, :enable => options[:enable_on_boot], :require => exec('memcached package')
+      service 'memcached', :ensure => :running, :enable => options[:enable_on_boot], :require => package('memcached')
 
       file '/etc/memcached.conf',
         :content => template(File.join(File.dirname(__FILE__), '..', '..', 'templates', 'memcached.conf.erb'), binding),
         :mode => '644',
-        :require => exec('memcached package'),
+        :require => package('memcached'),
         :notify => service('memcached')
 
       # install client gem if specified. otherwise, use version bundled with rails.
       if options[:client]
-        gem 'memcache-client', :require => exec('memcached package'), :version => options[:client]
+        gem 'memcache-client', :require => package('memcached'), :version => options[:client]
       end
     end
   end
